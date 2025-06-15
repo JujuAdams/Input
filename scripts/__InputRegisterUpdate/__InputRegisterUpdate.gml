@@ -10,67 +10,10 @@ function __InputRegisterUpdate()
         __time += delta_time/1000;
         ++__frame;
         
-        __pointerBlockedByUserThisFrame = false;
+        ///////
+        // Track mouse movement
+        ///////
         
-        //Handle window state
-        if (INPUT_ON_DESKTOP && (not INPUT_ON_WEB))
-        {
-            if (os_is_paused())
-            {
-                //Lost focus
-                __windowFocus = false;
-                __pointerBlockedByWindowDefocus = true;
-                
-                //Linux app continues to recieve input some number of frames after focus loss
-                //Clear IO on focus loss to prevent false positive of subsequent focus regain
-                if (INPUT_ON_LINUX)
-                {
-                    var _keyboardString = keyboard_string;
-                    io_clear();
-                    keyboard_string = _keyboardString;
-                }
-                
-                //Enable Windows IME
-                if (INPUT_ON_WINDOWS)
-                {
-                    keyboard_virtual_show(undefined, undefined, undefined, undefined);
-                }
-                
-                __InputPlugInExecuteCallbacks(INPUT_PLUG_IN_CALLBACK.LOSE_FOCUS);
-            }
-            else
-            {
-                if (__windowFocus)
-                {
-                    if (__pointerBlockedByWindowDefocus)
-                    {
-                        //Sustain mouse block while a button remains held
-                        __pointerBlockedByWindowDefocus = false; //Temporarily turn off blocking
-                        __pointerBlockedByWindowDefocus = (__InputGetMouseOutput() != undefined);
-                    }
-                }
-                else if ((keyboard_key != vk_nokey) 
-                     ||  (mouse_button != mb_none)
-                     ||  (INPUT_ON_WINDOWS && window_has_focus())
-                     ||  (INPUT_ON_MACOS   && __pointerMoved))
-                {
-                    //Regained focus
-                    __windowFocus                   = true;
-                    __pointerBlockedByWindowDefocus = true;
-                    __pointerBlockedByUserThisFrame = true;
-                
-                    //Disable Windows IME
-                    if (INPUT_ON_WINDOWS)
-                    {
-                        keyboard_virtual_hide();
-                    }
-                    
-                    __InputPlugInExecuteCallbacks(INPUT_PLUG_IN_CALLBACK.GAIN_FOCUS);
-                }
-            }
-        }
-        
-        //Track mouse movement and also fix Windows touchpad / touchscreen problems
         if (not INPUT_BLOCK_MOUSE_CHECKS)
         {
             __prevPointerDeviceX = __pointerDeviceX;
@@ -102,28 +45,30 @@ function __InputRegisterUpdate()
             }
             
             __pointerMoved = (point_distance(__prevPointerDeviceX, __prevPointerDeviceY, __pointerDeviceX, __pointerDeviceY) > INPUT_MOUSE_MOVE_DEADZONE);
-            
-            if (INPUT_ON_WINDOWS)
-            {
-                //Track clicks from touchpad and touchscreen taps (system-setting dependent)
-                __tapPresses  += device_mouse_check_button_pressed( 0, mb_left);
-                __tapReleases += device_mouse_check_button_released(0, mb_left);
-                
-                if (__tapReleases >= __tapPresses)
-                {
-                    //Resolve press/release desync (where press failed to register on same frame as release)
-                    __tapClick    = (__tapReleases > __tapPresses);
-                    __tapPresses  = 0;
-                    __tapReleases = 0;
-                }
-                else
-                {
-                    __tapClick = false;
-                }
-            }
         }
         
-        //Reorder virtual buttons if necessary, from highest priority to lowest
+        ///////
+        // Update cached pointer button state
+        ///////
+        
+        //Move the previous button state into our "previous" array
+        array_copy(__pointerButtonStatePrev, 0, __pointerButtonStateNow, 0, __INPUT_MOUSE_BUTTON_COUNT);
+        
+        if (not __pointerBlocked)
+        {
+            //If we"re not blocked, copy the raw state
+            array_copy(__pointerButtonStateNow, 0, __pointerButtonStateRaw, 0, __INPUT_MOUSE_BUTTON_COUNT);
+        }
+        else
+        {
+            //Wipe out all state if we are blocked
+            array_map_ext(__pointerButtonStateNow, function() { return false; });
+        }
+        
+        ///////
+        //Reorder virtual buttons
+        ///////
+        
         if (__virtualOrderDirty)
         {
             __virtualOrderDirty = false;
@@ -148,7 +93,10 @@ function __InputRegisterUpdate()
             });
         }
         
-        //Update player state
+        ///////
+        // Update player state
+        ///////
+        
         __lowestConnectedPlayerIndex = undefined;
         var _i = 0;
         repeat(INPUT_MAX_PLAYERS)

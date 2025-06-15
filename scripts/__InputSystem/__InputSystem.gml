@@ -5,6 +5,13 @@
 
 #macro __INPUT_CONTROLLER_OBJECT_DEPTH  16001
 
+#macro __INPUT_MOUSE_BUTTON_LEFT    0
+#macro __INPUT_MOUSE_BUTTON_MIDDLE  1
+#macro __INPUT_MOUSE_BUTTON_RIGHT   2
+#macro __INPUT_MOUSE_BUTTON_SIDE1   3
+#macro __INPUT_MOUSE_BUTTON_SIDE2   4
+#macro __INPUT_MOUSE_BUTTON_COUNT   5 //Number of macros above
+
 // Whether the game uses the horizontal holdtype for single Joy-Cons. Set this to `false` for
 // vertical holdtype when running on Switch. The library treats these two modes as mutually
 // exclusive (come talk to us if you need to be able to swap at runtime).
@@ -97,8 +104,10 @@ function __InputSystem()
         __playerArray = undefined;
         
         //Pointer abstraction for mouse/touch input
+        __pointerButtonStateRaw  = array_create(__INPUT_MOUSE_BUTTON_COUNT, false);
+        __pointerButtonStateNow  = array_create(__INPUT_MOUSE_BUTTON_COUNT, false);
+        __pointerButtonStatePrev = array_create(__INPUT_MOUSE_BUTTON_COUNT, false);
         __pointerBlockedByUser = false;
-        __pointerBlockedByUserThisFrame = false;
         
         __pointerBlocked     = false;
         __pointerMoved       = false;

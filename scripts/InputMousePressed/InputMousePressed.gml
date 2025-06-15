@@ -6,57 +6,76 @@
 
 function InputMousePressed(_binding = mb_left)
 {
-    static _system = __InputSystem();
-    if (INPUT_BLOCK_MOUSE_CHECKS || _system.__pointerBlocked) return false;
+    static _pointerButtonStateNow  = __InputSystem().__pointerButtonStateNow;
+    static _pointerButtonStatePrev = __InputSystem().__pointerButtonStatePrev;
     
-    if not ((_binding == mb_left) || (_binding == mb_any) || (_binding == mb_none))
-    {
-        //Extended mouse buttons
-        return device_mouse_check_button_pressed(0, _binding);
-    }
+    if (INPUT_BLOCK_MOUSE_CHECKS) return false;
     
-    if (INPUT_ON_WINDOWS && _system.__tapClick)
+    if (_binding == mb_right)
     {
-        //Trackpad
-        
-        var _left = true;
+        return (not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_RIGHT])
+                 && _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_RIGHT];
     }
-    else if (INPUT_ON_MOBILE)
+    else if (_binding == mb_middle)
     {
-        //Touch
-        
+        return (not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_MIDDLE])
+                 && _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_MIDDLE];
+    }
+    else if (_binding == mb_side1)
+    {
+        return (not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE1])
+                 && _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_SIDE1];
+    }
+    else if (_binding == mb_side2)
+    {
+        return (not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE2])
+                 && _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_SIDE2];
+    }
+    else
+    {
         //Edge testing
-        if (INPUT_TOUCH_EDGE_DEADZONE > 0)
+        if (INPUT_ON_MOBILE && (INPUT_TOUCH_EDGE_DEADZONE > 0))
         {
-            var _x = device_mouse_x_to_gui(0);
-            var _y = device_mouse_y_to_gui(0);
+            var _x = device_mouse_raw_x(0);
+            var _y = device_mouse_raw_y(0);
             
-            if ((_x < INPUT_TOUCH_EDGE_DEADZONE) || (_x > (display_get_gui_width()  - INPUT_TOUCH_EDGE_DEADZONE))
-            ||  (_y < INPUT_TOUCH_EDGE_DEADZONE) || (_y > (display_get_gui_height() - INPUT_TOUCH_EDGE_DEADZONE)))
+            if ((_x < INPUT_TOUCH_EDGE_DEADZONE) || (_x > (display_get_width()  - INPUT_TOUCH_EDGE_DEADZONE))
+            ||  (_y < INPUT_TOUCH_EDGE_DEADZONE) || (_y > (display_get_height() - INPUT_TOUCH_EDGE_DEADZONE)))
             {
                 var _left = false;
             }
             else
             {
-                var _left = device_mouse_check_button_pressed(0, mb_left);
+                var _left = (not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_LEFT])
+                              && _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_LEFT];
             }
         }
-    }
-    else
-    {
-        //Mouse
         
-        var _left = device_mouse_check_button_pressed(0, mb_left);
+        if (_binding == mb_left)
+        {
+            return _left;
+        }
+        else if (_binding == mb_any)
+        {
+            if (_left) return true;
+            if ((not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_RIGHT ]) && _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_RIGHT ]) return true;
+            if ((not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_MIDDLE]) && _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_MIDDLE]) return true;
+            if ((not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE1 ]) && _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_SIDE1 ]) return true;
+            if ((not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE2 ]) && _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_SIDE2 ]) return true;
+            return false;
+        }
+        else if (_binding == mb_none)
+        {
+            if (_left) return false;
+            if ((not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_RIGHT ]) && _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_RIGHT ]) return false;
+            if ((not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_MIDDLE]) && _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_MIDDLE]) return false;
+            if ((not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE1 ]) && _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_SIDE1 ]) return false;
+            if ((not _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE2 ]) && _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_SIDE2 ]) return false;
+            return true;
+        }
+        else
+        {
+            __InputError("Mouse button out of range (", _binding, ")");
+        }
     }
-    
-    switch(_binding)
-    {
-        case mb_none: return !_left && device_mouse_check_button_pressed(0, mb_none); break;
-        case mb_any:  return  _left || device_mouse_check_button_pressed(0, mb_any);  break;
-        case mb_left: return  _left;                                                  break;
-    }
-        
-    __InputError("Mouse button out of range (", _binding, ")");
-    
-    return false;
 }

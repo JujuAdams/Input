@@ -6,36 +6,35 @@
 
 function InputMouseReleased(_binding = mb_left)
 {
-    static _system = __InputSystem();
+    static _pointerButtonStateNow  = __InputSystem().__pointerButtonStateNow;
+    static _pointerButtonStatePrev = __InputSystem().__pointerButtonStatePrev;
+    
     if (INPUT_BLOCK_MOUSE_CHECKS) return false;
     
-    //If mouse was blocked this frame then return <true> if the mouse is pressed
-    //This means blocking the mouse should fire off a released event
-    if (_system.__pointerBlockedByUserThisFrame)
+    if (_binding == mb_right)
     {
-        return __InputMouseCheckRaw(_binding);
+        return (not _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_RIGHT])
+                 && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_RIGHT];
     }
-    
-    if (_system.__pointerBlocked) return false;
-    
-    if not ((_binding == mb_left) || (_binding == mb_any) || (_binding == mb_none))
+    else if (_binding == mb_middle)
     {
-        //Extended mouse buttons
-        return device_mouse_check_button_released(0, _binding);
+        return (not _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_MIDDLE])
+                 && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_MIDDLE];
     }
-    
-    if (INPUT_ON_WINDOWS && _system.__tapClick)
+    else if (_binding == mb_side1)
     {
-        //Trackpad
-        
-        var _left = true;
+        return (not _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_SIDE1])
+                 && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE1];
     }
-    else if (INPUT_ON_MOBILE)
+    else if (_binding == mb_side2)
     {
-        //Mouse
-        
+        return (not _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_SIDE2])
+                 && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE2];
+    }
+    else
+    {
         //Edge testing
-        if (INPUT_TOUCH_EDGE_DEADZONE > 0)
+        if (INPUT_ON_MOBILE && (INPUT_TOUCH_EDGE_DEADZONE > 0))
         {
             var _x = device_mouse_raw_x(0);
             var _y = device_mouse_raw_y(0);
@@ -47,31 +46,36 @@ function InputMouseReleased(_binding = mb_left)
             }
             else
             {
-                var _left = device_mouse_check_button_released(0, mb_left);
+                var _left = (not _pointerButtonStateNow[ __INPUT_MOUSE_BUTTON_LEFT])
+                              && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_LEFT];
             }
         }
-    }
-    else
-    {
-        //Mouse
         
-        var _left = device_mouse_check_button_released(0, mb_left);
+        if (_binding == mb_left)
+        {
+            return _left;
+        }
+        else if (_binding == mb_any)
+        {
+            if (_left) return true;
+            if ((not _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_RIGHT ]) && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_RIGHT ]) return true;
+            if ((not _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_MIDDLE]) && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_MIDDLE]) return true;
+            if ((not _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_SIDE1 ]) && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE1 ]) return true;
+            if ((not _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_SIDE2 ]) && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE2 ]) return true;
+            return false;
+        }
+        else if (_binding == mb_none)
+        {
+            if (_left) return false;
+            if ((not _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_RIGHT ]) && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_RIGHT ]) return false;
+            if ((not _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_MIDDLE]) && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_MIDDLE]) return false;
+            if ((not _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_SIDE1 ]) && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE1 ]) return false;
+            if ((not _pointerButtonStateNow[__INPUT_MOUSE_BUTTON_SIDE2 ]) && _pointerButtonStatePrev[__INPUT_MOUSE_BUTTON_SIDE2 ]) return false;
+            return true;
+        }
+        else
+        {
+            __InputError("Mouse button out of range (", _binding, ")");
+        }
     }
-    
-    if (_binding == mb_left)
-    {
-        return _left;
-    }
-    else if (_binding == mb_any)
-    {
-        return (_left || device_mouse_check_button_released(0, mb_any));
-    }
-    else if (_binding == mb_none)
-    {
-        return ((not _left) && device_mouse_check_button_released(0, mb_none));
-    }
-    
-    __InputError("Mouse button out of range (", _binding, ")");
-    
-    return false;
 }

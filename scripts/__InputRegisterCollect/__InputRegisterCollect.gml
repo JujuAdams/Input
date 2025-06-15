@@ -38,6 +38,7 @@ function __InputRegisterCollect()
         ///////
         // Unstick keys. Hooray for work-arounds!
         ///////
+        
         if ((not INPUT_BAN_KBM) && keyboard_check(vk_anykey))
         {
             if (INPUT_ON_WINDOWS)
@@ -105,9 +106,29 @@ function __InputRegisterCollect()
             }
         }
         
+        if ((not INPUT_BLOCK_MOUSE_CHECKS) && INPUT_ON_WINDOWS)
+        {
+            //Track clicks from touchpad and touchscreen taps (system-setting dependent)
+            __tapPresses  += device_mouse_check_button_pressed( 0, mb_left);
+            __tapReleases += device_mouse_check_button_released(0, mb_left);
+            
+            if (__tapReleases >= __tapPresses)
+            {
+                //Resolve press/release desync (where press failed to register on same frame as release)
+                __tapClick    = (__tapReleases > __tapPresses);
+                __tapPresses  = 0;
+                __tapReleases = 0;
+            }
+            else
+            {
+                __tapClick = false;
+            }
+        }
+        
         ///////
         // Handle Steamworks
         ///////
+        
         if (__usingSteamworks)
         {
             steam_input_run_frame();
@@ -151,6 +172,7 @@ function __InputRegisterCollect()
         ///////
         // Detect and handle gamepad connections and disconnections
         ///////
+        
         if ((not INPUT_BAN_GAMEPADS) && (current_time > INPUT_GAMEPADS_COLLECT_PREDELAY))
         {
             if (INPUT_ON_ANDROID && (__time - __androidEnumerationTime > INPUT_ANDROID_GAMEPAD_ENUMERATION_INTERVAL))
@@ -207,8 +229,102 @@ function __InputRegisterCollect()
         }
         
         ///////
+        // Handle window state
+        ///////
+        
+        if (INPUT_ON_DESKTOP && (not INPUT_ON_WEB))
+        {
+            if (os_is_paused())
+            {
+                //Window has lost focus
+                __windowFocus = false;
+                __pointerBlockedByWindowDefocus = true;
+                
+                //Linux app continues to recieve input some number of frames after focus loss
+                //Clear IO on focus loss to prevent false positive of subsequent focus regain
+                if (INPUT_ON_LINUX)
+                {
+                    var _keyboardString = keyboard_string;
+                    io_clear();
+                    keyboard_string = _keyboardString;
+                }
+                
+                //Enable Windows IME
+                if (INPUT_ON_WINDOWS)
+                {
+                    keyboard_virtual_show(undefined, undefined, undefined, undefined);
+                }
+                
+                __InputPlugInExecuteCallbacks(INPUT_PLUG_IN_CALLBACK.LOSE_FOCUS);
+            }
+            else
+            {
+                //Window is in focus
+                
+                if (__windowFocus)
+                {
+                    //We were in focus last frame as well
+                    
+                    //Unset the one frame defocus but sustain mouse block while a button remains held
+                    if (__pointerBlockedByWindowDefocus)
+                    {
+                        __pointerBlockedByWindowDefocus = false; //Temporarily turn off blocking
+                        __pointerBlockedByWindowDefocus = (__InputGetMouseOutput() != undefined);
+                    }
+                }
+                else
+                {
+                    //We were *not* in focus last frame
+                    
+                    if ((keyboard_key != vk_nokey) 
+                     ||  (mouse_button != mb_none)
+                     ||  (INPUT_ON_WINDOWS && window_has_focus())
+                     ||  (INPUT_ON_MACOS   && __pointerMoved))
+                    {
+                        //We got some input! Let's party
+                        __windowFocus = true;
+                        
+                        //Persist defocus for a frame to swallow the first mouse input
+                        __pointerBlockedByWindowDefocus = true;
+                        
+                        //Disable Windows IME
+                        if (INPUT_ON_WINDOWS)
+                        {
+                            keyboard_virtual_hide();
+                        }
+                    
+                        __InputPlugInExecuteCallbacks(INPUT_PLUG_IN_CALLBACK.GAIN_FOCUS);
+                    }
+                }
+            }
+        }
+        
+        ///////
+        // Collect raw input state
+        ///////
+        
+        if (not INPUT_BLOCK_MOUSE_CHECKS)
+        {
+            if (not __pointerBlockedByWindowDefocus)
+            {
+                var _pointerButtonStateRaw = __pointerButtonStateRaw;
+                _pointerButtonStateRaw[@ __INPUT_MOUSE_BUTTON_LEFT  ] = (INPUT_ON_WINDOWS && __tapClick)? true : device_mouse_check_button(0, mb_left);
+                _pointerButtonStateRaw[@ __INPUT_MOUSE_BUTTON_MIDDLE] = device_mouse_check_button(0, mb_middle);
+                _pointerButtonStateRaw[@ __INPUT_MOUSE_BUTTON_RIGHT ] = device_mouse_check_button(0, mb_right);
+                _pointerButtonStateRaw[@ __INPUT_MOUSE_BUTTON_SIDE1 ] = device_mouse_check_button(0, mb_side1);
+                _pointerButtonStateRaw[@ __INPUT_MOUSE_BUTTON_SIDE2 ] = device_mouse_check_button(0, mb_side2);
+            }
+            else
+            {
+                //Wipe out all state
+                array_map_ext(__pointerButtonStateRaw, function() { return false; });
+            }
+        }
+        
+        ///////
         // Rebinding
         ///////
+        
         var _i = 0;
         repeat(array_length(_rebindingArray))
         {
@@ -219,6 +335,7 @@ function __InputRegisterCollect()
         ///////
         // Hotswap
         ///////
+        
         if ((not INPUT_BAN_HOTSWAP) && __hotswap)
         {
             if (InputPlayerGetInactive())
@@ -235,6 +352,7 @@ function __InputRegisterCollect()
         ///////
         // Collect raw input from devices
         ///////
+        
         var _i = 0;
         repeat(INPUT_MAX_PLAYERS)
         {
