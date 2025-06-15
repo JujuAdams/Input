@@ -35,7 +35,9 @@ function __InputRegisterCollect()
             }
         })();
         
-        //Unstick
+        ///////
+        // Unstick keys. Hooray for work-arounds!
+        ///////
         if ((not INPUT_BAN_KBM) && keyboard_check(vk_anykey))
         {
             if (INPUT_ON_WINDOWS)
@@ -103,6 +105,9 @@ function __InputRegisterCollect()
             }
         }
         
+        ///////
+        // Handle Steamworks
+        ///////
         if (__usingSteamworks)
         {
             steam_input_run_frame();
@@ -143,6 +148,9 @@ function __InputRegisterCollect()
             }
         }
         
+        ///////
+        // Detect and handle gamepad connections and disconnections
+        ///////
         if ((not INPUT_BAN_GAMEPADS) && (current_time > INPUT_GAMEPADS_COLLECT_PREDELAY))
         {
             if (INPUT_ON_ANDROID && (__time - __androidEnumerationTime > INPUT_ANDROID_GAMEPAD_ENUMERATION_INTERVAL))
@@ -198,7 +206,9 @@ function __InputRegisterCollect()
             }
         }
         
-        //Handle rebinding
+        ///////
+        // Rebinding
+        ///////
         var _i = 0;
         repeat(array_length(_rebindingArray))
         {
@@ -206,7 +216,9 @@ function __InputRegisterCollect()
             ++_i;
         }
         
-        //Handle hotswap
+        ///////
+        // Hotswap
+        ///////
         if ((not INPUT_BAN_HOTSWAP) && __hotswap)
         {
             if (InputPlayerGetInactive())
@@ -220,7 +232,9 @@ function __InputRegisterCollect()
             }
         }
         
-        //Collect raw verb values from players' devices
+        ///////
+        // Collect raw input from devices
+        ///////
         var _i = 0;
         repeat(INPUT_MAX_PLAYERS)
         {
