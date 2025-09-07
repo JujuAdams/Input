@@ -4,10 +4,13 @@
 
 function __InputGamepadGetReadArray(_device)
 {
-    static _gamepadArray     = __InputSystem().__gamepadArray;
-    static _genericReadArray = __InputSystem().__genericReadArray;
+    static _gamepadArray = __InputSystem().__gamepadArray;
     
-    if ((_device < 0) || (_device >= array_length(_gamepadArray))) return _genericReadArray;
+    if ((_device < 0) || (_device >= array_length(_gamepadArray)))
+    {
+        return undefined;
+    }
     
-    return _gamepadArray[_device].__readArray;
+    var _struct = _gamepadArray[_device];
+    return (_struct == undefined)? undefined : _struct.__readArray;
 }

@@ -6,6 +6,7 @@ function __InputRegisterCollectPlayer()
     {
         static _system             = __InputSystem();
         static _playerArray        = __InputSystemPlayerArray();
+        static _gamepadArray       = _system.__gamepadArray;
         static _verbCount          = _system.__verbCount;
         static _virtualButtonArray = _system.__virtualButtonArray;
         
@@ -60,7 +61,7 @@ function __InputRegisterCollectPlayer()
                     
                     __lastConnectedGamepadType = InputDeviceGetGamepadType(_device);
                     
-                    var _readArray = __InputGamepadGetReadArray(_device);
+                    var _deviceValueArray = _gamepadArray[_device].__valueArray;
                     
                     var _bindingArray = __gamepadBindingArray;
                     var _i = 0;
@@ -78,7 +79,7 @@ function __InputRegisterCollectPlayer()
                             if (_rawBinding != undefined)
                             {
                                 var _absBinding = abs(_rawBinding);
-                                var _raw = max(0, sign(_rawBinding)*_readArray[_absBinding - INPUT_GAMEPAD_BINDING_MIN](_device, _absBinding));
+                                var _raw = max(0, sign(_rawBinding)*_deviceValueArray[_absBinding - INPUT_GAMEPAD_BINDING_MIN]);
                                 if (_raw > _valueRaw)
                                 {
                                     _valueRaw = _raw;

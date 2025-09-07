@@ -209,6 +209,8 @@ function __InputSystem()
             gamepad_button_value, // 32810 = gp_extra6
         ];
         
+        __zeroValueArray = array_create(INPUT_GAMEPAD_BINDING_COUNT, 0);
+        
         
         __verbDefineAllowed = true;
         __InputConfigVerbs();

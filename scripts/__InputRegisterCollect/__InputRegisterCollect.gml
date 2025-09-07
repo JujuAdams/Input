@@ -166,7 +166,7 @@ function __InputRegisterCollect()
                 var _gamepad = __gamepadArray[_i];
                 if (is_struct(_gamepad))
                 {
-                    _gamepad.__UpdatePrevValues();
+                    _gamepad.__UpdateValues();
                 }
                 
                 ++_i;
